@@ -28,7 +28,6 @@ $library = Get-DPMLibrary -DPMServer $DPMServer | ?{$_.UserFriendlyName -match $
 
 $PGs = Get-ProtectionGroup -DPMServer THMANDPM11 | ?{$_.Name -match "THHS2E12BE2X"} | Sort Name
 
-$DSs = @()
 foreach ($PG in $PGs)
 {
 	$DSs = Get-DataSource -ProtectionGroup $PG | Sort Name
@@ -39,20 +38,8 @@ foreach ($PG in $PGs)
 		Write-Host "Backup for " $DS -ForegroundColor Yellow
 		Write-Host "on date " $rp.BackupTime -ForegroundColor Red
 		Write-Host "Triggering Backup to Tape Job"
-		Copy-DPMTapeData $RP -SourceLibrary $library -TapeLabel "$($DSs.Computer + "\" + $DS.Name + " " + $RP.BackupTime)" -TapeOption 2 -TargetLibrary -whatif
+		Copy-DPMTapeData $RP -SourceLibrary $library -TapeLabel "$($DS.Computer + "\" + $DS.Name + " " + $RP.BackupTime)" -TapeOption 2 -TargetLibrary $library
 	}
 }
 
 
-
-
-
-
-
-		$RPs = Get-RecoveryPoint -DataSource $ds | ?{$_.DataLocation -eq "Disk" -and $_.IsIncremental -eq $false}
-
-			$RPInfo += New-Object PSObject -Property @{
-		DataSource = Get-DataSource -ProtectionGroup $PG
-		}
-
-#Need to add Job info.
