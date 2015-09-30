@@ -2,6 +2,49 @@
 #	DOM-RPToTape.ps1
 #	Date: 24/09/2015
 
+#Get current library list from file
+$libraries = Get-Content "C:\TEMP\Librarylist.txt"
+CLS
+Write-Host "DPM Backup Automation Script" -ForegroundColor Black -BackgroundColor White
+Write-Host "Please Select an option. . ." 
+Write-Host `n
+Write-Host "For Tape Inventory type " -NoNewline; Write-Host "1" -ForegroundColor black -backgroundcolor white
+Write-Host "To start backup to tape job type " -NoNewline; Write-Host "2" -ForegroundColor black -backgroundcolor white
+Write-Host "For emergency copy to tape jobs type " -NoNewline; Write-Host "3" -ForegroundColor black -backgroundcolor white
+
+$input = Read-Host "Enter your selection . . ." 
+
+if ($input -eq "1")
+{
+    CLS
+	$DPMServer = Read-Host "Which DPM Server?"
+	#$libType = Read-Host "Which Library? Quantum or MSL or Quantum (DPM)?"
+    
+    while (($libType = Read-Host "Which Library? Quantum or MSL or Quantum (DPM)?") -notin $libraries) 
+    {
+    Write-Host "No active library found . . "
+	Start-Sleep -Seconds 2
+	CLS
+    }
+
+	if ($libType -match "Quantum" -or "i500") {
+		#$libType = "ADIC Scalar i500 Tape Library"
+		$libType = "Dell ML6000 Tape Library"
+	}
+	elseif ($libType -match "MSL" -or "HP") {
+		$libType = "Hewlett Packard MSL G3 Series library (x64 based)"
+	}
+	elseif ($libType -match "DPM") {
+		$libType = "Dell ML6000 Tape Library"
+	}
+	else {
+		Write-Host "No such library"
+	}
+
+	$library = Get-DPMLibrary -DPMServer $DPMServer | ?{$_.UserFriendlyName -match $libType}
+
+	#Start-DPMLibraryInventory -DPMLibrary $library -DetailedInventory -whatif
+}
 
 $libType = Read-Host "Which Library? Quantum or MSL or QuantumDPM11?"
 
@@ -43,3 +86,7 @@ foreach ($PG in $PGs)
 }
 
 
+#To get last datasource can you $DS = $DSS[$($DSS.count)-1] 
+
+
+#Need to consolidate the library commands into a function that can be called.
