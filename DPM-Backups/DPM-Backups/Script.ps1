@@ -3,7 +3,10 @@
 #	Date: 24/09/2015
 
 #Get current library list from file
+
 $libraries = Get-Content "C:\TEMP\Librarylist.txt"
+
+
 CLS
 Write-Host "DPM Backup Automation Script" -ForegroundColor Black -BackgroundColor White
 Write-Host "Please Select an option. . ." 
