@@ -3,22 +3,26 @@ Function Menu
 	CLS
 	Write-Host "DPM Backup Automation Script" -ForegroundColor Black -BackgroundColor White
 	$Global:DPMServer = Read-Host "Please enter DPM Server name"
+    Connect-DPMServer -DPMServerName $Global:DPMServer
 	#need to add the PSSession script to connect to required server. All scripts should then run under Invoke-Command
-	
+	CLS
 	Write-Host "Please Select an option. . ." 
 	Write-Host `n
 	Write-Host "For Tape Inventory type " -NoNewline; Write-Host "1" -ForegroundColor black -backgroundcolor white
 	Write-Host "To start backup to tape job type " -NoNewline; Write-Host "2" -ForegroundColor black -backgroundcolor white
 	Write-Host "For emergency copy to tape jobs type " -NoNewline; Write-Host "3" -ForegroundColor black -backgroundcolor white
 
-	$input = Read-Host "Enter your selection . . ." 
+	$Global:Choice = Read-Host "Enter your selection . . ." 
+
+    
 }
 
 
-Function LibrarySelection ($libraries)
+Function LibrarySelection
 {
+    CLS
 	[array]$libraryArray = @()
-
+    $libraries = Get-DPMLibrary
 	$i = 0
 	foreach ($library in $libraries)
 	{
@@ -32,7 +36,7 @@ Function LibrarySelection ($libraries)
 		$i++
 	}
 
-	Write-Output $libraryArray
+	Write-Output $libraryArray | FT
 	Write-Host `n
 	Write-Host "Please select a library: " -ForegroundColor Red -BackgroundColor White -NoNewline
 	$librarySelect = Read-Host
@@ -50,17 +54,18 @@ Function LibrarySelection ($libraries)
 		}
 	}
 
-	$library = $(Get-DPMLibrary -DPMServername $Global:DPMServer)[$librarySelect]
-	Write-Host "You have selected " $libraryArray.UserFriendlyName
+	$library = $(Get-DPMLibrary -DPMServername)[$librarySelect]
+	Write-Host "You have selected " $library.UserFriendlyName
 	$Global:library = $library
 }
 
 Function CopytoTape
 {
+    CLS
 	$library = $Global:library
 	[array]$PGArray = @()
 	
-	$PGs = Get-ProtectionGroup -DPMServer $Global:DPMServer | Sort Name
+	$PGs = Get-ProtectionGroup | Sort Name
 		$i = 0
 		foreach ($PG in $PGs)
 		{
@@ -73,18 +78,22 @@ Function CopytoTape
 			$PGArray += $tempArray
 			$i++
 		}
-	Write-Output $PGArray
+	Write-Output $PGArray | FT
 	Write-Host `n
-	Write-Host "Please select a Protection Group. 'Back' to reselect. 'Home' for main menu." -ForegroundColor Red -BackgroundColor White -NoNewline
-	$PGSelect = Read-Host 
+	$PGSelect = Read-Host "Please select a Protection Group. 'Home' for main menu "
 
 	if ($PGSelect -eq "Back")
 	{
-        Write-Host "Copy to Tape Menu"		
+        Write-Host "Returning to Protection Group Selection . . ."	
+        Start-Sleep -seconds 2
+        CopytoTape
 	} 
 	elseif ($PGSelect -eq "home" -or $PGSelect -eq "menu")
     {
-        Write-Host "Main Menu"
+        Write-Host "Returning to Main Menu . . ."
+        Disconnect-DPMServer
+        Start-Sleep -Seconds 2
+        Menu
     }
     else
 	{
@@ -96,10 +105,11 @@ Function CopytoTape
 	{
 		$RPs = Get-RecoveryPoint -DataSource $ds | ?{$_.DataLocation -eq "Disk" -and $_.IsIncremental -eq $false}
 		$RP = $($RPs | sort BackupTime)[0]
-		Write-Host "Backup for " $DS -ForegroundColor Yellow
-		Write-Host "on date " $rp.BackupTime -ForegroundColor Red
-		Write-Host "Triggering Backup to Tape Job"
-		ConfirmSelection ("Confirm emergency backup","Initiates emergency tape backup","Cancel")
+		Write-Host "Backup for " $DS -ForegroundColor Yellow -NoNewline; Write-Host " on date " $rp.BackupTime -ForegroundColor Red
+		#Write-Host "Triggering Backup to Tape Job"
+        $YesText = "Do wish to proceed with emergency backup?"
+        $NoText = "Cancel"
+		ConfirmSelection ("Confirm emergency backup")
 		if ($Global:result -eq 0)
 		{
 		Write-Host "Triggering Backup to Tape Job " $($DS.Computer + "\" + $DS.Name + " " + $RP.BackupTime)
@@ -115,7 +125,7 @@ Function CopytoTape
 }
 
 
-Function ConfirmSelection ($title,$YesText, $NoText)
+Function ConfirmSelection ([string]$title,[string]$YesText, [string]$NoText)
 {
 	$message = "Are you sure you want to proceed?"
 	$yes = New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", $YesText
