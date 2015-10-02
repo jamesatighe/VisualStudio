@@ -17,7 +17,7 @@ Function LibrarySelection ($libraries)
 
 		Write-Output $libraryArray
 		Write-Host `n
-		Write-Host "Please select a library" -ForegroundColor Black -BackgroundColor White -NoNewline
+		Write-Host "Please select a library" -ForegroundColor Red -BackgroundColor White -NoNewline
 		$librarySelect = Read-Host
 
 		While (($librarySelect -gt $libraries.count -1))
