@@ -1,10 +1,13 @@
-Function Menu 
+Function DPMMenu
 {
 	CLS
 	Write-Host "DPM Backup Automation Script" -ForegroundColor Black -BackgroundColor White
 	$Global:DPMServer = Read-Host "Please enter DPM Server name"
     Connect-DPMServer -DPMServerName $Global:DPMServer
 	#need to add the PSSession script to connect to required server. All scripts should then run under Invoke-Command
+}
+Function Menu
+{
 	CLS
 	Write-Host "Please Select an option. . ." 
 	Write-Host `n
