@@ -17,6 +17,7 @@ Function Menu
 
 	$Global:Choice = Read-Host "Enter your selection . . ." 
 
+
 }
 
 Function LibrarySelection
@@ -65,7 +66,6 @@ Function CopytoTape
     CLS
 	$library = $Global:library
 	[array]$PGArray = @()
-	[array]$RPArray = @()
 	
 	$PGs = Get-ProtectionGroup | Sort Name
 		$i = 0
@@ -111,10 +111,13 @@ Function CopytoTape
 
 	Write-Host "To automatically backup the oldest avaiable backup type 'Auto' or type continue: " -NoNewline
 	$Autoselect = Read-Host
+	Write-Host "To auto confirm the backups type 'Yes'" -NoNewline
+	$autoconfirm = Read-Host
 	
 	$DSs = Get-DataSource -ProtectionGroup $PG | Sort Name
 	foreach ($DS in $DSs)
 	{
+		[array]$RPArray = @()
 		$RPs = Get-RecoveryPoint -DataSource $ds | ?{$_.DataLocation -eq "Disk" -and $_.IsIncremental -eq $false} | Sort BackupTime
 		$i = 0
 		foreach ($RP in $RPs)
@@ -132,25 +135,29 @@ Function CopytoTape
 		}
 		if ($Autoselect -eq "auto")
 		{
-			$RP = ($RPArray | Sort BackupTime)[0]
+			$RP = ($RPs | Sort BackupTime)[0]
 			Write-Host "Backup for " $DS -ForegroundColor Yellow -NoNewline; Write-Host " on date " $rp.BackupTime -ForegroundColor Red
 			#Write-Host "Triggering Backup to Tape Job"
-			$YesText = "Do wish to proceed with emergency backup?"
-			$NoText = "Cancel"
-			ConfirmSelection ("Confirm emergency backup")
-			if ($Global:result -eq 0)
+			if ($autoconfirm -match "yes")
 			{
-				Write-Host "Triggering Backup to Tape Job " $($DS.Computer + "\" + $DS.Name + " " + $RP.BackupTime)
-				#Copy-DPMTapeData $RP -SourceLibrary $library -TapeLabel "$($DS.Computer + "\" + $DS.Name + " " + $RP.BackupTime)" -TapeOption 2 -TargetLibrary $library
+				$Global:result = 0
 			}
 			else 
 			{
-				Write-Host "Cancelling . . . "
-				Start-Sleep -Seconds 3
-				#CopytoTape
+				ConfirmSelection ("Confirm emergency backup")
+			}
+			if ($Global:result -eq 0)
+				{
+					Write-Host "Triggering Backup to Tape Job " $($DS.Computer + "\" + $DS.Name + " " + $RP.BackupTime)
+					
+					Copy-DPMTapeData $RP -SourceLibrary $library -TapeLabel "$($DS.Computer + "\" + $DS.Name + " " + $RP.BackupTime)" -TapeOption 2 -TargetLibrary $library
+				}
+				else 
+				{
+					Write-Host "Skipping Recovery Point . . . "
+				}
 			}
 
-		}
 		else
 		{
 			
@@ -163,34 +170,6 @@ Function CopytoTape
 				Start-Sleep -seconds 2
 				CopytoTape
 			} 
-			#elseif ($RPSelect -eq "multiple")
-			#{
-			#	$MultipleRP = @()
-			#	$MultipleRP = Read-Host "Select which Recovery Points to use separate with comma"
-			#	$MultipleRP = $MultipleRP.Split(",")
-			#	Write-Host $MultipleRP.count
-
-			#	foreach ($Point in $MultipleRP)
-			#	{
-			#		$RP = $RPS[$Point]
-			#		Write-Host "Backup for " $DS -ForegroundColor Yellow -NoNewline; Write-Host " on date " $RP.BackupTime -ForegroundColor Red
-			#		#Write-Host "Triggering Backup to Tape Job"
-			#		$YesText = "Do wish to proceed with emergency backup?"
-			#		$NoText = "Cancel"
-			#		ConfirmSelection ("Confirm emergency backup")
-			#		if ($Global:result -eq 0)
-			#		{
-			#			Write-Host "Triggering Backup to Tape Job " $($DS.Computer + "\" + $DS.Name + " " + $RP.BackupTime)
-			#			#Copy-DPMTapeData $RP -SourceLibrary $library -TapeLabel "$($DS.Computer + "\" + $DS.Name + " " + $RP.BackupTime)" -TapeOption 2 -TargetLibrary $library
-			#		}
-			#		else 
-			#		{
-			#			Write-Host "Moving to next Recovery Point . . ."
-			#			Start-Sleep -Seconds 1
-			#			#CopytoTape
-			#		}
-			#	}
-			#}
 			else
 			{
 				$RP = $RPs[$RPSelect]
@@ -198,23 +177,29 @@ Function CopytoTape
 			Write-Host $RP.count
 			Write-Host "Backup for " $DS -ForegroundColor Yellow -NoNewline; Write-Host " on date " $rp.BackupTime -ForegroundColor Red
 			#Write-Host "Triggering Backup to Tape Job"
-			$YesText = "Do wish to proceed with emergency backup?"
-			$NoText = "Cancel"
-			ConfirmSelection ("Confirm emergency backup")
+			if ($autoconfirm -match "yes")
+			{
+				$Global:result = 0
+			}
+			else 
+			{
+				ConfirmSelection ("Confirm emergency backup")
+			}
 			if ($Global:result -eq 0)
 			{
 				Write-Host "Triggering Backup to Tape Job " $($DS.Computer + "\" + $DS.Name + " " + $RP.BackupTime)
-				#Copy-DPMTapeData $RP -SourceLibrary $library -TapeLabel "$($DS.Computer + "\" + $DS.Name + " " + $RP.BackupTime)" -TapeOption 2 -TargetLibrary $library
+				Copy-DPMTapeData $RP -SourceLibrary $library -TapeLabel "$($DS.Computer + "\" + $DS.Name + " " + $RP.BackupTime)" -TapeOption 2 -TargetLibrary $library
 			}
 			else 
 			{
 				Write-Host "Cancelling . . . "
-				Start-Sleep -Seconds 3
-				#CopytoTape
+				Start-Sleep -Seconds 2
 			}
 		}
 	}
+	CopytoTape
 }
+
 
 
 Function ConfirmSelection ([string]$title,[string]$YesText, [string]$NoText)
